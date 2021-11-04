@@ -12,5 +12,5 @@ function sameAsBuiltIn(value: any) {
   const readableJson = RJSON.stringify(value);
   const newValue = JSON.parse(readableJson);
 
-  expect(JSON.stringify(newValue)).toBe(JSON.stringify(value));
+  expect(newValue).toEqual(value);
 }
