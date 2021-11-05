@@ -11,29 +11,41 @@ describe('stringify', () => {
 */
 
 // https://stackoverflow.com/a/43652073/838
+/*
 describe('stack-overflow', () => {
-  test(null)                               // null
-  test('he said "hello"')                  // 'he said "hello"'
-  test(5)                                  // 5  
-  test([1,2,true,false])                   // [ 1, 2, true, false ]  
-  test({a:1, b:2})                         // { a: 1, b: 2 }
-  test([{a:1},{b:2},{c:3}])                // [ { a: 1 }, { b: 2 }, { c: 3 } ]
-  test({a:[1,2,3], c:[4,5,6]})             // { a: [ 1, 2, 3 ], c: [ 4, 5, 6 ] }
-  test({a:undefined, b:2})                 // { b: 2 }
-  test({[<any>undefined]: 1})                   // { undefined: 1 }
-  test([[["test","mike",4,["jake"]],3,4]]) // [ [ [ 'test', 'mike', 4, [ 'jake' ]
+  test('null', null)                               // null
+  test('string', 'he said "hello"')                  // 'he said "hello"'
+  test('number', 5)                                  // 5  
+  test('array', [1,2,true,false])                   // [ 1, 2, true, false ]  
+  test('object', {a:1, b:2})                         // { a: 1, b: 2 }
+  test('obj in array', [{a:1},{b:2},{c:3}])                // [ { a: 1 }, { b: 2 }, { c: 3 } ]
+  test('array in obj', {a:[1,2,3], c:[4,5,6]})             // { a: [ 1, 2, 3 ], c: [ 4, 5, 6 ] }
+  test('undefined in obj', {a:undefined, b:2})                 // { b: 2 }
+  test('undefined in arr', {[<any>undefined]: 1})                   // { undefined: 1 }
+  test('mixed', [[["test","mike",4,["jake"]],3,4]]) // [ [ [ 'test', 'mike', 4, [ 'jake' ]
 
   // Multiple levels
-  test([0, [1, [2, [3]]]]);
-  test([0, {a: 0, b: [1, {a: 1, b:[2, null] }]}]);  
+  test('arr levels', [0, [1, [2, [3]]]]);
+  test('obj levels', [0, {a: 0, b: [1, {a: 1, b:[2, null] }]}]);  
+});
+*/
+
+describe('perf', () => {
+  const arr: number[] = [];
+  const n = 100000;
+  for(let i=0; i < n; i++) {
+    arr.push(i);
+  }
+  it(`JSON`, () => expect(JSON.stringify(arr)).not.toEqual(""));
+  //it(`reduce`, () => expect(RJSON.stringify(arr, undefined, undefined, false)).not.toEqual(""));
+  it(`loop`, () => expect(RJSON.stringify(arr, undefined, undefined)).not.toEqual(""));
 });
 
-function test(value: any, shape?: string) {
-  const testName = JSON.stringify(value).substr(0, 20);
+function test(testName: string, value: any, shape?: string) {
   const readableJson = RJSON.stringify(value);
   const newValue = JSON.parse(readableJson);
 
-  it(`equal ${testName}`, () => expect(newValue).toEqual(value));
+  it(`${testName}`, () => expect(newValue).toEqual(value));
 
   // TODO: remove
   // If shape isn't specified, use the default

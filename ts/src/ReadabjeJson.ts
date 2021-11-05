@@ -6,7 +6,7 @@ export default class readabjeJson {
     space = spaceStr(space);
     const opt: IOptions = {
       space: space,
-      newline: space.length == 0 ? "" : "\n"
+      newline: space.length == 0 ? "" : "\n",
     }
     return stringify(value, 0, opt);
   }
@@ -54,29 +54,28 @@ function stringify(data: any, level: number, opt: IOptions): string {
 
 function stringifyArray(data: any, level: number, opt: IOptions) : string {
   const indent = opt.space.repeat(level);
-  return '[' + opt.newline 
-    + indent + opt.space
-    + data.reduce((acc: any, v: any) => {
-        if (v === undefined)
-          return [...acc, 'null']
-        else
-          return [...acc, stringify(v, level + 1, opt)]
-      }, [])
-    .join(',' + opt.newline + indent + opt.space) + opt.newline
-    + indent + ']';
+  const items: string[] = [];
+  for(const v of data) {
+    if (v === undefined) { items.push('null'); }
+    else { items.push(stringify(v, level + 1, opt)); }
+  }
+  return "[" + opt.newline 
+              + indent + opt.space
+              + items.join(',' + opt.newline + indent + opt.space) + opt.newline
+              + indent + "]";
 }
 
 function stringifyObject(data: any, level: number, opt: IOptions) {
   const indent = opt.space.repeat(level);
-  return '{' + opt.newline 
-    + indent + opt.space
-    + Object.keys(data).reduce((acc: any, k: any) => {
-        if (data[k] === undefined)
-          return acc;
-        else
-          return [...acc, stringify(k, level + 1, opt) + ': '
-                        + stringify(data[k], level + 1, opt)];
-      }, [])
-    .join(',' + opt.newline + indent + opt.space) + opt.newline 
-    + indent + '}';
+  const items: string[] = [];
+  for(const key of Object.keys(data)) {
+    const value = data[key]; 
+    if (value !== undefined) { 
+      items.push(stringify(key, level + 1, opt) + ': ' + stringify(value, level + 1, opt));
+    }
+  }
+  return "{" + opt.newline
+              + indent + opt.space
+              + items.join(',' + opt.newline + indent + opt.space) + opt.newline
+              + indent + "}";
 }
