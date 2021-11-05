@@ -11,7 +11,6 @@ describe('stringify', () => {
 */
 
 // https://stackoverflow.com/a/43652073/838
-/*
 describe('stack-overflow', () => {
   test('null', null)                               // null
   test('string', 'he said "hello"')                  // 'he said "hello"'
@@ -28,7 +27,6 @@ describe('stack-overflow', () => {
   test('arr levels', [0, [1, [2, [3]]]]);
   test('obj levels', [0, {a: 0, b: [1, {a: 1, b:[2, null] }]}]);  
 });
-*/
 
 describe('perf', () => {
   const arr: number[] = [];
