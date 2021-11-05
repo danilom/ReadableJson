@@ -71,6 +71,3 @@ function stringifyObject(data: any, level: number, opt: IOptions) {
               + items.join(',' + opt.newline + indent + opt.space) + opt.newline
               + indent + close;
 }
-
-
-
