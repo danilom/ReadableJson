@@ -1,60 +1,59 @@
-import RJSON from '../src/ReadabjeJson';
-
-// describe('stringify', () => {
-//   it('null', () => sameAsBuiltIn(null));
-//   it('number', () => sameAsBuiltIn(123));
-//   it('string', () => sameAsBuiltIn("abc '123' and \"456\""));
-//   it('object-empty', () => sameAsBuiltIn({}));
-//   it('array-empty', () => sameAsBuiltIn([]));
-// });
+import * as RJSON from '../src/ReadabjeJson';
 
 // https://stackoverflow.com/a/43652073/838
-describe('stack-overflow cases', () => {
+describe('primitives and basics', () => {
   test('null', null)
-  test('string', 'he said "hello"')
+  //test('string', 'he said "hello"') // test fn uses string as a shape
   test('number', 5)
-
-  test('array',
-    [1,2,true,false],
-    `[1, 2, true, false]`) // Inline
-  test('object', 
-    {a:1, b:2},
-    `{"a":1, "b":2}`) // Inline
-  test('obj in array', 
-    [{a:1},{b:2},{c:3}],
-    `[{"a":1}, {"b":2}, {"c":3}]`) // Inline
-
-  test('array in obj', 
-    {a:[1,2,3], c:[4,5,6]},
-    `{"a":[1, 2, 3], "c":[4, 5, 6]}`) // Inline
-    
-  test('undefined as value', 
-    {a:undefined, b:2},
-    `{"b":2}`); // Inline, eliminated extra key
-
-  test('undefined as key', 
-    {undefined: 1},
-    '{"undefined":1}')
-  test('null as key', 
-    {null: 1},
-    `{"null":1}`)
-  test('mixed', 
-    [[["test","mike",4,["jake"]],3,4]],
-`[
-  [
-    ["test", "mike", 4, ["jake"]],
-    3,
-    4
-  ]
-]`)
-    
+  test('object-empty', {})
+  test('array-empty', [])
+  test('undefined as value', {a:undefined, b:2})
+  test('undefined as key', {undefined: 1})
+  test('null as key', {null: 1})
 
   // edge case, round-tripping doesn't work
-  test('undefined (null) in arr', [1, undefined], "", false)    // [ 1, null]; converts to "null"
+  it('undefined (null) in array', () => {
+    let rvalue = RJSON.stringify([1, undefined]);
+    expect(rvalue).toBe("[1, null]");
+  });
 
-  // // Multiple levels
+  // Multiple levels
+  test('arr complex', [[["test", "mike", 4,["jake"]],3,4]]);
   test('arr levels', [0, [1, [2, [3]]]]);
-  test('obj levels', [0, {a: 0, b: [1, {a: 1, b:[2, null] }]}]);  
+  test('arr/obj levels', [0, {a: 0, b: [1, {a: 1, b:[2, null]}]}]);
+});
+
+var gOptions: RJSON.IOptions;
+
+describe('simple shapes', () => {
+  gOptions = RJSON.fillOptions({
+    maxInlineLen: 40, // make testing easier
+  });
+
+  test('arr inline',  `[1, 2, true, false]`)
+  test('obj inline',    `{"a":1, "b":2}`)
+  test('obj in array',  `[{"a":1}, {"b":2}, {"c":3}]`)
+  test('obj with arr inline',  `{"a":[1, 2, 3], "b":[4, 5, 6]}`)
+  test('obj too long to inline',  `
+{
+  "a":[1, 2, 3], 
+  "b":[4, 5, 6], 
+  "c":[7, 8, 9]
+}`)
+
+  test('align keys', `
+{
+  "x"      : 1,
+  "thisOneIsWayTooLong": 2
+  "longKey": 3,
+        123: "numeric key right aligned",
+}
+  `)
+
+});
+
+describe('method overloads', () => {
+  // TODO
 });
 
 // describe('canInlineByLeafDepth', () => {
@@ -76,42 +75,52 @@ describe('stack-overflow cases', () => {
 //   it('mixed 3 deep', () => expect(ci({arr: [1, { a: 1 }], obj: { a: 1, b:2 }}, maxDepth)).toBeFalsy());
 // });
 
-// describe('perf', () => {
-//   const arr: number[] = [];
-//   const n = 100000;
-//   for(let i=0; i < n; i++) {
-//     arr.push(i);
-//   }
-//   it(`JSON`, () => expect(JSON.stringify(arr)).not.toEqual(""));
-//   //it(`reduce`, () => expect(RJSON.stringify(arr, undefined, undefined, false)).not.toEqual(""));
-//   it(`loop`, () => expect(RJSON.stringify(arr, undefined, undefined)).not.toEqual(""));
-// });
-
-function test(testName: string, value: any, 
-  shape?: string, doEqual = true) 
-{
-  const readableJson = RJSON.stringify(value);
-  let newValue = "";
-  try 
-  {
-    newValue = JSON.parse(readableJson);
-  } 
-  catch (SyntaxError) {
-    // debug here
-    RJSON.stringify(value);
-    fail(readableJson);
-    return;
+describe('perf', () => {
+  const arr: number[] = [];
+  const n = 100000;
+  for(let i=0; i < n; i++) {
+    arr.push(i);
   }
+  it(`JSON`, () => expect(JSON.stringify(arr)).not.toEqual(""));
+  //it(`reduce`, () => expect(RJSON.stringify(arr, undefined, undefined, false)).not.toEqual(""));
+  it(`loop`, () => expect(RJSON.stringify(arr)).not.toEqual(""));
+});
 
-  if (doEqual) {
-    it(`${testName}`, () => expect(newValue).toEqual(value));
-  }
+function test(testName: string, valueOrShape: any) {
+  it(testName, () => {
+    var shape: string;
+    var value: any;
+    if (typeof(value) == 'string') {
+      shape = value.trim();
+      try {
+        value = JSON.parse(shape);
+      }
+      catch (e) {
+        fail(`test error, invalid shape:\n${e}\n${shape}`);
+      }
+    }
+    else {
+      shape = "";
+      value = valueOrShape;
+    }
 
-  //console.log(readableJson);
+    // Test if we produce the same object
+    const readableJson = RJSON.stringify(value, gOptions);
+    let newValue = "";
+    try 
+    {
+      newValue = JSON.parse(readableJson);
+    } 
+    catch (e) {
+      // debug here
+      RJSON.stringify(value, gOptions);
+      fail(`invalid json:\n${e}\n${shape}`);
+    }
 
-  // TODO: remove
-  // If shape isn't specified, use the default
-  if (shape) {
-    it(`shape ${testName}`, () => expect(readableJson).toEqual(shape) );  
-  }
+    // Test if shape is the same as expected
+    if (shape) {
+      expect(readableJson).toBe(shape); 
+    }
+  });
 }
+

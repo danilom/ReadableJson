@@ -1,38 +1,106 @@
-
-type ReplacerT = (this: any, key: string, value: any) => any | (number | string)[] | null;
-
-interface IOptions {
+export interface IOptions {
   spaceLen: number;
   newline: string;
-
   maxKeyAlignLen: number;
   maxInlineDepth: number;
   maxInlineLen: number;
 }
+function fillOptionsCore(newOpt: Partial<IOptions>) : IOptions {
+  return {
+    spaceLen:       newOpt.spaceLen || 2,
+    newline:        newOpt.newline || "\n",
+    maxKeyAlignLen: newOpt.maxKeyAlignLen || 16,
+    maxInlineDepth: newOpt.maxInlineDepth || 2,
+    maxInlineLen:   newOpt.maxInlineLen || 100,
+  };
+}
 
-export default class readabjeJson {
-  // TODO: replacer
-  // TODO-??: space is string|number in the original
-  static stringify(value: any, replacer?: ReplacerT, space?: number): string {
-    // With no spaces, built-in stringifier is faster
-    if (space == 0) {
-      return JSON.stringify(value, replacer, space);
-    }
+export function fillOptions(spaceOrOpt?: Partial<IOptions> | number | null ) : IOptions {
+  var newOpt: Partial<IOptions> = {};
+  if (typeof (spaceOrOpt) === 'number') {
+    newOpt.spaceLen = spaceOrOpt;
+  }
+  else if (spaceOrOpt !== null && spaceOrOpt !== undefined) {
+    newOpt = spaceOrOpt;
+  }
+  return fillOptionsCore(newOpt);
+}
 
-    const opt: IOptions = {
-      spaceLen: space || 2,
-      newline: "\n",
-      maxKeyAlignLen: 16,
-      maxInlineDepth: 2,
-      maxInlineLen: 100,
-    }
-    //return stringifyV1(value, 0, opt);
-    return stringify(value, 0, opt);
+// Compatibility with JSON.stringify
+function isReplacerType(obj: any): boolean {
+  return typeof(obj) === 'function' || 
+         typeof(obj) === 'string' || 
+         typeof(obj) === 'number';
+}
+
+type ReplacerT = ((this: any, key: string, value: any) => any) | (number | string)[] | null;
+
+// Overloads compatible with JSON.stringify
+/**
+* Converts a JavaScript value to a JavaScript Object Notation (JSON) string.
+* @param value A JavaScript value, usually an object or array, to be converted.
+* @param replacer A function that transforms the results.
+* @param space Amount of indentation to add to returned JSON.
+*/
+export function stringify(value: any, replacer?: (this: any, key: string, value: any) => any, space?: number): string 
+/**
+ * Converts a JavaScript value to a JavaScript Object Notation (JSON) string.
+ * @param value A JavaScript value, usually an object or array, to be converted.
+ * @param replacer An array of strings and numbers that acts as an approved list for selecting the object properties that will be stringified.
+ * @param space Amount of indentation to add to returned JSON.
+ */
+export function stringify(value: any, replacer?: (number | string)[] | null, space?: number): string 
+
+// Variants with options instead of space
+/**
+* Converts a JavaScript value to a JavaScript Object Notation (JSON) string.
+* @param value A JavaScript value, usually an object or array, to be converted.
+* @param replacer A function that transforms the results.
+* @param space Amount of indentation to add to resulting JSON
+*/
+export function stringify(value: any, replacer?: (this: any, key: string, value: any) => any, options?: Partial<IOptions>): string 
+/**
+ * Converts a JavaScript value to a JavaScript Object Notation (JSON) string.
+ * @param value A JavaScript value, usually an object or array, to be converted.
+ * @param replacer An array of strings and numbers that acts as an approved list for selecting the object properties that will be stringified.
+ * @param options Options to customize JSON output. 
+ */
+export function stringify(value: any, replacer?: (number | string)[] | null, options?: Partial<IOptions>): string 
+
+/**
+ * Converts a JavaScript value to a JavaScript Object Notation (JSON) string.
+ * @param value A JavaScript value, usually an object or array, to be converted.
+ * @param options Options to customize JSON output. 
+ */
+export function stringify(value: any, options?: Partial<IOptions>): string 
+
+// Full version
+export function stringify(value: any, 
+  replacerOrOptions?: ReplacerT | Partial<IOptions>, 
+  spaceOrOptions?: Partial<IOptions> | number): string 
+{
+  let replacer = null;
+  if (isReplacerType(replacerOrOptions)) {
+    replacer = <any>replacerOrOptions;
+  }
+  else {
+    spaceOrOptions = <any>replacerOrOptions; 
   }
 
-  // test
-  static test_canInlineByLeafDepth = canInlineByLeafDepth;
+  let opt = fillOptions(spaceOrOptions);
+
+  // With no spaces, built-in stringifier is faster
+  if (opt.spaceLen == 0) {
+    return JSON.stringify(value, replacer, 0);
+  }
+
+  // TODO: replacer support
+  //return stringifyV1(value, 0, opt);
+  return stringifyCore(value, 0, opt);
 }
+
+// test
+export var test_canInlineByLeafDepth = canInlineByLeafDepth;
 
 interface KVItem {
   key: any;
@@ -41,7 +109,7 @@ interface KVItem {
   //vJson?: string;
 }
 
-function stringify(data: any, indentLen: number, opt: IOptions): string {
+function stringifyCore(data: any, indentLen: number, opt: IOptions): string {
   if (data === null || typeof(data) !== "object") {
     // Primitive
     return JSON.stringify(data);
@@ -95,7 +163,7 @@ function stringifyFull(data: any, indentLen: number, opt: IOptions): string {
       else { keyJson += pad; }
     }
     str += keyJson + ': ';
-    str += stringify(kvi.v, (keyIndentLen + keyJson.length + 2), opt);
+    str += stringifyCore(kvi.v, (keyIndentLen + keyJson.length + 2), opt);
   }
   str += "\n" + " ".repeat(indentLen) + "}";
 
@@ -112,7 +180,7 @@ function stringifyFullArray(data: any, indentLen: number, opt: IOptions): string
     else { str += ","; }
 
     str += opt.newline + vIndent;
-    str += stringify(v, vIndentLen, opt);
+    str += stringifyCore(v, vIndentLen, opt);
   }
   str += opt.newline + " ".repeat(indentLen) + "]";
 
