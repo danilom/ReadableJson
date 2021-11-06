@@ -113,26 +113,7 @@ interface KVItem {
   //vJson?: string;
 }
 
-// class StringBuilder {
-//   private list: string[] = [];
-//   length = 0;
-
-//   append(s: string) {
-//     this.list.push(s);
-//     this.length += s.length;
-//   }
-//   toString() {
-//     // Save what we have for faster perf later
-//     var str = this.list.join("");
-//     this.list = [str];
-//     this.length = str.length;
-//     return str;
-//   }
-// }
-
 class Stringifier {
-  // private sb = new StringBuilder();
-
   constructor(private opt: IOptions) {
   }
 

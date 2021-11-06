@@ -1,5 +1,10 @@
 import * as RJSON from '../src/ReadabjeJson';
 
+describe('align arrays', () => {
+
+});
+
+
 // https://stackoverflow.com/a/43652073/838
 describe('primitives and basics', () => {
   test('null', null)
@@ -75,6 +80,8 @@ describe('method overloads', () => {
 // });
 
 describe('perf', () => {
+  return; // disable
+
   const arr: any[] = [];
   const n = 100000;
   for(let i=0; i < n; i++) {
@@ -117,9 +124,12 @@ function test(testName: string, valueOrShape: any) {
       fail(`invalid json:\n${e}\n${shape}`);
     }
 
+    // Test if object is same as expected
+    expect(newValue).toEqual(value);
+
     // Test if shape is the same as expected
     if (shape) {
-      expect(readableJson).toBe(shape); 
+      expect(readableJson).toEqual(shape); 
     }
   });
 }
