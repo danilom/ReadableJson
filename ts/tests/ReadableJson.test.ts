@@ -49,7 +49,6 @@ describe('simple shapes', () => {
         123: "numeric key right aligned",
 }
   `)
-
 });
 
 describe('method overloads', () => {
@@ -76,14 +75,15 @@ describe('method overloads', () => {
 // });
 
 describe('perf', () => {
-  const arr: number[] = [];
+  const arr: any[] = [];
   const n = 100000;
   for(let i=0; i < n; i++) {
-    arr.push(i);
+    arr.push({ a: 1, b: [1,2,3] });
   }
   it(`JSON`, () => expect(JSON.stringify(arr)).not.toEqual(""));
-  //it(`reduce`, () => expect(RJSON.stringify(arr, undefined, undefined, false)).not.toEqual(""));
-  it(`loop`, () => expect(RJSON.stringify(arr)).not.toEqual(""));
+  it(`RJSON`, () => expect(RJSON.stringify(arr)).not.toEqual(""));
+
+  console.log(RJSON.stringify(arr).substr(0, 1000) + "\n...");
 });
 
 function test(testName: string, valueOrShape: any) {
