@@ -1,9 +1,7 @@
-import { assert } from "qunit";
+////<reference path="../src/ReadableJson.ts" />
+////import * as RJSON from './../src/ReadableJson'
 
-// TODO: improve, autocomplete would be nice
-const RJSON = (<any>window).RJSON; 
-
-const opt/*: RJSON.IOptions*/ = { maxInlineLen: 40 };
+const opt: RJSON.IOptions = { maxInlineLen: 40 };
 
 // https://stackoverflow.com/a/43652073/838
 QUnit.module('basics', () => {
@@ -88,9 +86,9 @@ function logToConsole(testName: string, json: string) {
       json : json.substr(0, 1000) + "\n...");
 }
 
-//function test(testName: string, opt: RJSON.IOptions, value: any, shape?: string): void
-//function test(testName: string, opt: RJSON.IOptions, shape: string): void
-function jtest(testName: string, opt: any/*RJSON.IOptions*/, valueOrShape: any, shape?: string): void {
+function jtest(testName: string, opt: RJSON.IOptions, value: any, shape?: string): void
+function jtest(testName: string, opt: RJSON.IOptions, shape: string): void
+function jtest(testName: string, opt: RJSON.IOptions, valueOrShape: any, shape?: string): void {
   QUnit.test(testName, (assert) => {
     var value: any;
     if (typeof(valueOrShape) == 'string' && !shape) {
