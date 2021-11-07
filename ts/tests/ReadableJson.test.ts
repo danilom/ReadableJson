@@ -1,5 +1,10 @@
 import * as RJSON from '../src/ReadabjeJson';
 
+// workaround
+function fail(error?: string): never {
+  throw new Error(error);
+}
+
 describe('align arrays', () => {
 
 });
@@ -7,53 +12,61 @@ describe('align arrays', () => {
 
 // https://stackoverflow.com/a/43652073/838
 describe('primitives and basics', () => {
-  test('null', null)
+  const opt: RJSON.IOptions = {};
+
+  test('null', opt, null)
   //test('string', 'he said "hello"') // test fn uses string as a shape
-  test('number', 5)
-  test('object-empty', {})
-  test('array-empty', [])
-  test('undefined as value', {a:undefined, b:2})
-  test('undefined as key', {undefined: 1})
-  test('null as key', {null: 1})
+  test('number', opt, 5)
+  test('object-empty', opt, {})
+  test('array-empty', opt, [])
+  test('undefined as value', opt, {a:undefined, b:2}, `{"b":2}`)
+  test('undefined key', opt, {undefined: 1}, `{"undefined":1}`)
+  test('null key', opt, {null: 1}, `{"null":1}`)
+  test('numeric key', opt, {123: 1}, `{"123":1}`)
 
   // edge case, round-tripping doesn't work
-  it('undefined (null) in array', () => {
+  it('undefined is null in array', () => {
     let rvalue = RJSON.stringify([1, undefined]);
     expect(rvalue).toBe("[1, null]");
   });
-
+  
   // Multiple levels
-  test('arr complex', [[["test", "mike", 4,["jake"]],3,4]]);
-  test('arr levels', [0, [1, [2, [3]]]]);
-  test('arr/obj levels', [0, {a: 0, b: [1, {a: 1, b:[2, null]}]}]);
+  test('arr complex', opt, [[["test", "mike", 4,["jake"]],3,4]]);
+  test('arr levels', opt, [0, [1, [2, [3]]]]);
+  test('arr/obj levels', opt, [0, {a: 0, b: [1, {a: 1, b:[2, null]}]}]);
 });
 
-var gOptions: RJSON.IOptions;
-
 describe('simple shapes', () => {
-  gOptions = RJSON.fillOptions({
-    maxInlineLen: 40, // make testing easier
-  });
+  const opt: RJSON.IOptions = { maxInlineLen: 40 };
 
-  test('arr inline',  `[1, 2, true, false]`)
-  test('obj inline',    `{"a":1, "b":2}`)
-  test('obj in array',  `[{"a":1}, {"b":2}, {"c":3}]`)
-  test('obj with arr inline',  `{"a":[1, 2, 3], "b":[4, 5, 6]}`)
-  test('obj too long to inline',  `
+  test('arr inline', opt, `[1, 2, true, false]`)
+  test('obj inline', opt,   `{"a":1, "b":2}`)
+  test('obj in array', opt, `[{"a":1}, {"b":2}, {"c":3}]`)
+  test('obj with arr inline', opt, `{"a":[1, 2, 3], "b":[4, 5, 6]}`)
+  test('obj too long to inline', opt, `
 {
-  "a":[1, 2, 3], 
-  "b":[4, 5, 6], 
-  "c":[7, 8, 9]
+  "a": [1, 2, 3],
+  "b": [4, 5, 6],
+  "c": [7, 8, 9]
 }`)
 
-  test('align keys', `
+  test('align keys', opt, `
 {
-  "x"      : 1,
+  "123": [1, 2, 3],
+  "a"  : 1,
   "thisOneIsWayTooLong": 2
-  "longKey": 3,
-        123: "numeric key right aligned",
 }
-  `)
+`)
+
+  test('max-inline-len', { maxInlineLen: 10 }, `
+{
+  "a": [1],
+  "b": [
+         1,
+         2
+       ]
+}`)
+
 });
 
 describe('method overloads', () => {
@@ -93,42 +106,48 @@ describe('perf', () => {
   console.log(RJSON.stringify(arr).substr(0, 1000) + "\n...");
 });
 
-function test(testName: string, valueOrShape: any) {
+function test(testName: string, opt: RJSON.IOptions, value: any, shape?: string): void
+function test(testName: string, opt: RJSON.IOptions, shape: string): void
+function test(testName: string, opt: RJSON.IOptions, valueOrShape: any, shape?: string): void {
   it(testName, () => {
-    var shape: string;
     var value: any;
-    if (typeof(value) == 'string') {
-      shape = value.trim();
+    if (typeof(valueOrShape) == 'string' && !shape) {
+      shape = valueOrShape;
       try {
         value = JSON.parse(shape);
       }
-      catch (e) {
-        fail(`test error, invalid shape:\n${e}\n${shape}`);
+      catch (e: any) {
+        fail(`test error, invalid shape:\n${"" + e}\n${shape}`);
       }
     }
     else {
-      shape = "";
+      shape = shape || "";
       value = valueOrShape;
     }
+    // For convenience
+    shape = shape.trim();
 
     // Test if we produce the same object
-    const readableJson = RJSON.stringify(value, gOptions);
+    const readableJson = RJSON.stringify(value, opt);
     let newValue = "";
     try 
     {
       newValue = JSON.parse(readableJson);
     } 
-    catch (e) {
+    catch (e: any) {
       // debug here
-      RJSON.stringify(value, gOptions);
-      fail(`invalid json:\n${e}\n${shape}`);
+      RJSON.stringify(value, opt);
+      fail(`invalid json:\n${"" + e}\n${shape}`);
     }
 
     // Test if object is same as expected
     expect(newValue).toEqual(value);
 
+    //console.log(`${testName}: shape:*${shape}*`);
+
     // Test if shape is the same as expected
     if (shape) {
+
       expect(readableJson).toEqual(shape); 
     }
   });

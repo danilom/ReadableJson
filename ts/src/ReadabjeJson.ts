@@ -1,22 +1,67 @@
-export interface IOptions {
+export type IOptions = Partial<IFullOptions>;
+
+export interface IFullOptions {
+  /**
+   * Length of the space used for indent. Default 2.
+   */
   spaceLen: number;
-  newline: string;
+  /**
+   * Maximum length of an object key for which it's still aligned. Default 16.
+   * @example
+   * {
+   *   "aKey"         : 1,
+   *   "bKeyBitLonger": 2,    // both are <16 in length, and aligned
+   *   "tooLongNotAligned": 3 // NOT aligned, key is 17 chars
+   * }
+   */
   maxKeyAlignLen: number;
+  /**
+   * Maximum depth of objects to inline. Default 2.
+   * @example
+   * [1, 2]      // inlined, depth 1
+   * [1, [2, 3]] // inlined, depth 2
+   * [           // NOT inlined, depth 3 > maxInlineDepth
+   *   [1, [2, 3]] 
+   * ]
+   */
   maxInlineDepth: number;
+  /**
+   * Maximum lenght of the line when inlining objects. Default 100
+   * Only applies to arrays and objects, not to primitives like long strings.
+   * @example
+   * // Assume maxInlineLen = 10
+   * {
+   *   "a":[1], // inlined, length 10, it fits
+   *   "b":[    // NOT inlined, length of '  "b": [1, 2]' would be 13 if inlined
+   *         1,
+   *         2
+   *       ]
+   * }
+   */
   maxInlineLen: number;
+
+  inlineArray_SpaceAfterComma: boolean;
+  inlineObject_SpaceAfterComma: boolean;
 }
-function fillOptionsCore(newOpt: Partial<IOptions>) : IOptions {
+function fillOptionsCore(newOpt: IOptions) : IFullOptions {  
   return {
-    spaceLen:       newOpt.spaceLen || 2,
-    newline:        newOpt.newline || "\n",
-    maxKeyAlignLen: newOpt.maxKeyAlignLen || 16,
-    maxInlineDepth: newOpt.maxInlineDepth || 2,
-    maxInlineLen:   newOpt.maxInlineLen || 100,
+    spaceLen:       val(newOpt.spaceLen, 2),
+    maxKeyAlignLen: val(newOpt.maxKeyAlignLen, 16),
+    maxInlineDepth: val(newOpt.maxInlineDepth, 2),
+    maxInlineLen:   val(newOpt.maxInlineLen, 100),
+    inlineArray_SpaceAfterComma: val(newOpt.inlineArray_SpaceAfterComma, true),
+    inlineObject_SpaceAfterComma: val(newOpt.inlineObject_SpaceAfterComma, true),
   };
 }
+function val<T>(v: T | undefined, defaultV: T): T {
+  return (v === null || v === undefined) ? defaultV : v;
+}
 
-export function fillOptions(spaceOrOpt?: Partial<IOptions> | number | null ) : IOptions {
-  var newOpt: Partial<IOptions> = {};
+
+const NEWLINE = "\n";
+
+function fillOptions(spaceOrOpt?: IOptions | number | null ) : IFullOptions {
+  var newOpt: IOptions = {};
   if (typeof (spaceOrOpt) === 'number') {
     newOpt.spaceLen = spaceOrOpt;
   }
@@ -58,26 +103,26 @@ export function stringify(value: any, replacer?: (number | string)[] | null, spa
 * @param replacer A function that transforms the results.
 * @param space Amount of indentation to add to resulting JSON
 */
-export function stringify(value: any, replacer?: (this: any, key: string, value: any) => any, options?: Partial<IOptions>): string 
+export function stringify(value: any, replacer?: (this: any, key: string, value: any) => any, options?: IOptions): string 
 /**
  * Converts a JavaScript value to a JavaScript Object Notation (JSON) string.
  * @param value A JavaScript value, usually an object or array, to be converted.
  * @param replacer An array of strings and numbers that acts as an approved list for selecting the object properties that will be stringified.
  * @param options Options to customize JSON output. 
  */
-export function stringify(value: any, replacer?: (number | string)[] | null, options?: Partial<IOptions>): string 
+export function stringify(value: any, replacer?: (number | string)[] | null, options?: IOptions): string 
 
 /**
  * Converts a JavaScript value to a JavaScript Object Notation (JSON) string.
  * @param value A JavaScript value, usually an object or array, to be converted.
  * @param options Options to customize JSON output. 
  */
-export function stringify(value: any, options?: Partial<IOptions>): string 
+export function stringify(value: any, options?: IOptions): string 
 
 // Full version
 export function stringify(value: any, 
-  replacerOrOptions?: ReplacerT | Partial<IOptions>, 
-  spaceOrOptions?: Partial<IOptions> | number): string 
+  replacerOrOptions?: ReplacerT | IOptions, 
+  spaceOrOptions?: IOptions | number): string 
 {
   let replacer = null;
   if (isReplacerType(replacerOrOptions)) {
@@ -114,7 +159,7 @@ interface KVItem {
 }
 
 class Stringifier {
-  constructor(private opt: IOptions) {
+  constructor(private opt: IFullOptions) {
   }
 
   stringifyCore(data: any, indentLen: number): string {
@@ -159,21 +204,19 @@ class Stringifier {
     let first = true;
     for(var kvi of kvInfo.sortedKVs) {
       if (first) { first = false; }
-      else { str += ","; }
+      else { str += ","; } // followed by \n, no extra space needed
   
-      str += "\n" + keyIndent;
+      str += NEWLINE + keyIndent;
       
       // Insert spaces for key alignment
       let keyJson = kvi.keyJson;
       if (keyJson.length < kvInfo.keyAlignLen) {
-        const pad = " ".repeat(kvInfo.keyAlignLen - keyJson.length);
-        if (typeof(kvi.key) === 'number') { keyJson = pad + keyJson; } // right-align numbers
-        else { keyJson += pad; }
+        keyJson += " ".repeat(kvInfo.keyAlignLen - keyJson.length);
       }
-      str += keyJson + ': ';
+      str += keyJson + ': '; // extra space for readability
       str += this.stringifyCore(kvi.v, (keyIndentLen + keyJson.length + 2));
     }
-    str += "\n" + " ".repeat(indentLen) + "}";
+    str += NEWLINE + " ".repeat(indentLen) + "}";
   
     return str;
   }
@@ -185,12 +228,12 @@ class Stringifier {
     let first = true;
     for(var v of data) {
       if (first) { first = false; }
-      else { str += ","; }
+      else { str += ","; } // followed by \n, no extra space needed
   
-      str += this.opt.newline + vIndent;
+      str += NEWLINE + vIndent;
       str += this.stringifyCore(v, vIndentLen);
     }
-    str += this.opt.newline + " ".repeat(indentLen) + "]";
+    str += NEWLINE + " ".repeat(indentLen) + "]";
   
     return str;
   }
@@ -214,13 +257,12 @@ class Stringifier {
       if (v === undefined) { continue; }
   
       if (first) { first = false; }
-      else { str += ", "; } // Extra space for compactness. TODO: make configurable
+      else { str += this.opt.inlineObject_SpaceAfterComma ? ", " : ","; }
   
       if (str.length > maxInlineLen) { return null; }
   
-      const keyJson = this.tryStringifyInline(key, maxInlineLen - str.length);
-      if (keyJson === null) { return null; }
-      str += keyJson + ":"; // Single space for compactness
+      const keyJson = JSON.stringify("" + key); // keys are always strings
+      str += keyJson + ":"; // TODO: support adding extra space (configurable)
   
       if (str.length > maxInlineLen) { return null; }
   
@@ -238,7 +280,7 @@ class Stringifier {
     let first = true;
     for(const v of data) {
       if (first) { first = false; }
-      else { str += ", "; } // Extra space for compactness. TODO: make configurable
+      else { str += this.opt.inlineArray_SpaceAfterComma ? ", " : ","; }
   
       if (str.length > maxInlineLen) { return null; }
   
@@ -293,7 +335,7 @@ class Stringifier {
       const v = data[key];
       if (v === undefined) { continue; } // skip undefined items
       
-      var keyJson = JSON.stringify(key);
+      var keyJson = JSON.stringify("" + key); // keys are always strings
       var kvItem: KVItem = { key: key, keyJson: keyJson, v: v };
       if (keyJson.length <= this.opt.maxKeyAlignLen
           && keyJson.length > rv.keyAlignLen)
