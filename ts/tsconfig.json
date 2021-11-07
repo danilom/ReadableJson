@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "incremental": true,
+    "listEmittedFiles": true,
 
     /* Basic Options */
     "target":

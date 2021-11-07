@@ -350,7 +350,9 @@ class Stringifier {
   
 }
 
-if (typeof(window) !== undefined) {
-  //TODO
-  //window.RJSON = {};
+// Support the browser (non-module)
+if (typeof(window) !== 'undefined') {
+  (<any>window).RJSON = {
+    stringify: stringify,
+  };
 }
