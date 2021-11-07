@@ -22,7 +22,16 @@ QUnit.module('basics', () => {
   });
   
   // Multiple levels
-  jtest('arr complex', opt, [[["test", "mike", 4,["jake"]],3,4]]);
+  jtest('arr complex', opt, `
+[
+  [
+    ["test", "mike", 4, ["jake"]],
+    3,
+    4
+  ]
+]
+`);
+  
   jtest('arr levels', opt, [0, [1, [2, [3]]]]);
   jtest('arr/obj levels', opt, [0, {a: 0, b: [1, {a: 1, b:[2, null]}]}]);
 });
@@ -43,9 +52,9 @@ QUnit.module('inlining', () => {
 {
   "a": [1],
   "b": [
-         1,
-         2
-       ]
+    1,
+    2
+  ]
 }`)
 
 });
@@ -75,8 +84,11 @@ QUnit.module('perf', () => {
     assert.expect(0);
     RJSON.stringify(arr); 
   });
+  QUnit.test(`print RJSON`, (assert) => { 
+    assert.expect(0);
+    logToConsole("perf", RJSON.stringify(arr));
+  });
 
-  logToConsole("perf", RJSON.stringify(arr));
 });
 
 function logToConsole(testName: string, json: string) {

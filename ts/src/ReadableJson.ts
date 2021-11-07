@@ -37,9 +37,9 @@ namespace RJSON
      * {
      *   "a":[1], // inlined, length 10, it fits
      *   "b":[    // NOT inlined, length of '  "b": [1, 2]' would be 13 if inlined
-     *         1,
-     *         2
-     *       ]
+     *     1,
+     *     2
+     *   ]
      * }
      */
     maxInlineLen: number;
@@ -146,7 +146,7 @@ namespace RJSON
     // TODO: replacer support
     //return stringifyV1(value, 0, opt);
     var sfier = new Stringifier(opt);
-    return sfier.stringifyCore(value, 0);
+    return sfier.stringifyCore(value, 0, 0);
   }
   
   // test
@@ -166,7 +166,7 @@ namespace RJSON
     constructor(private opt: IFullOptions) {
     }
   
-    stringifyCore(data: any, indentLen: number): string {
+    stringifyCore(data: any, inlinePrefixLen: number, fullIndentLen: number): string {
       if (data === null || typeof(data) !== "object") {
         // Primitive
         return JSON.stringify(data);
@@ -177,14 +177,14 @@ namespace RJSON
       // Try to stringify inline
       let inlineJson: string | null = null;
       if (this.canInlineByLeafDepth(data, this.opt.maxInlineDepth)) {
-        inlineJson = this.tryStringifyInline(data, this.opt.maxInlineLen - indentLen);
+        inlineJson = this.tryStringifyInline(data, this.opt.maxInlineLen - inlinePrefixLen);
       }
       if (inlineJson != null) {
         return inlineJson;
       }
       
       // Couldn't inline, use the full-length method
-      return this.stringifyFull(data, indentLen)
+      return this.stringifyFull(data, fullIndentLen)
     }
     
     private stringifyFull(data: any, indentLen: number): string {
@@ -218,7 +218,9 @@ namespace RJSON
           keyJson += " ".repeat(kvInfo.keyAlignLen - keyJson.length);
         }
         str += keyJson + ': '; // extra space for readability
-        str += this.stringifyCore(kvi.v, (keyIndentLen + keyJson.length + 2));
+        str += this.stringifyCore(kvi.v, 
+              (keyIndentLen + keyJson.length + 2),
+              keyIndentLen);
       }
       str += NEWLINE + " ".repeat(indentLen) + "}";
     
@@ -235,7 +237,7 @@ namespace RJSON
         else { str += ","; } // followed by \n, no extra space needed
     
         str += NEWLINE + vIndent;
-        str += this.stringifyCore(v, vIndentLen);
+        str += this.stringifyCore(v, vIndentLen, vIndentLen);
       }
       str += NEWLINE + " ".repeat(indentLen) + "]";
     
