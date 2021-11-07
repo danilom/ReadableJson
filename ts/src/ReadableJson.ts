@@ -350,3 +350,7 @@ class Stringifier {
   
 }
 
+if (typeof(window) !== undefined) {
+  //TODO
+  //window.RJSON = {};
+}

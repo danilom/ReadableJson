@@ -1,4 +1,4 @@
-import * as RJSON from '../src/ReadabjeJson';
+import * as RJSON from '../src/ReadableJson';
 
 // workaround
 function fail(error?: string): never {
