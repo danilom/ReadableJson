@@ -58,8 +58,7 @@ QUnit.module("aligment", () => {
   "123": [1, 2, 3],
   "a"  : 1,
   "thisOneIsWayTooLong": 2
-}
-`)
+}`)
 })
 
 QUnit.module('perf', () => {
@@ -79,8 +78,15 @@ QUnit.module('perf', () => {
     RJSON.stringify(arr); 
   });
 
-  console.log(RJSON.stringify(arr).substr(0, 1000) + "\n...");
+  logToConsole("perf", RJSON.stringify(arr));
 });
+
+function logToConsole(testName: string, json: string) {
+    // Print to console
+    console.log(`=== ${testName}`);
+    console.log(json.length < 1000 ?
+      json : json.substr(0, 1000) + "\n...");
+}
 
 //function test(testName: string, opt: RJSON.IOptions, value: any, shape?: string): void
 //function test(testName: string, opt: RJSON.IOptions, shape: string): void
@@ -104,8 +110,11 @@ function jtest(testName: string, opt: any/*RJSON.IOptions*/, valueOrShape: any, 
     // For convenience
     shape = shape.trim();
 
+    const readableJson: string = RJSON.stringify(value, opt);
+
+    logToConsole(testName, readableJson);
+
     // Test if we produce the same object
-    const readableJson = RJSON.stringify(value, opt);
     let newValue = "";
     try 
     {
@@ -113,7 +122,6 @@ function jtest(testName: string, opt: any/*RJSON.IOptions*/, valueOrShape: any, 
     } 
     catch (e: any) {
       //RJSON.stringify(value, opt);
-      console.error(readableJson);
       debugger; // debug here, see why RJSON.stringify fails
       assert.false(true, `invalid json produced: ${"" + e}`);
     }
