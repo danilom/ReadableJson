@@ -23,14 +23,13 @@ QUnit.module('basics', () => {
   
   // Multiple levels
   jtest('arr complex', opt, `
-[
-  [
-    ["test", "mike", 4, ["jake"]],
-    3,
-    4
-  ]
-]
-`);
+    [
+      [
+        ["test", "mike", 4, ["jake"]],
+        3,
+        4
+      ]
+    ]`);
   
   jtest('arr levels', opt, [0, [1, [2, [3]]]]);
   jtest('arr/obj levels', opt, [0, {a: 0, b: [1, {a: 1, b:[2, null]}]}]);
@@ -42,30 +41,30 @@ QUnit.module('inlining', () => {
   jtest('obj in array', opt, `[{"a":1}, {"b":2}, {"c":3}]`)
   jtest('obj with arr inline', opt, `{"a":[1, 2, 3], "b":[4, 5, 6]}`)
   jtest('obj too long to inline', opt, `
-{
-  "a": [1, 2, 3],
-  "b": [4, 5, 6],
-  "c": [7, 8, 9]
-}`)
+    {
+      "a": [1, 2, 3],
+      "b": [4, 5, 6],
+      "c": [7, 8, 9]
+    }`)
 
   jtest('max-inline-len', { maxInlineLen: 10 }, `
-{
-  "a": [1],
-  "b": [
-    1,
-    2
-  ]
-}`)
+    {
+      "a": [1],
+      "b": [
+        1,
+        2
+      ]
+    }`)
 
 });
 
 QUnit.module("aligment", () => {
   jtest('keys', opt, `
-{
-  "123": [1, 2, 3],
-  "a"  : 1,
-  "thisOneIsWayTooLong": 2
-}`)
+    {
+      "123": [1, 2, 3],
+      "a"  : 1,
+      "thisOneIsWayTooLong": 2
+    }`)
 })
 
 QUnit.module('perf', () => {
@@ -98,6 +97,33 @@ function logToConsole(testName: string, json: string) {
       json : json.substr(0, 1000) + "\n...");
 }
 
+// Remove shape indent, e.g. 
+//     [
+//       [1,2,3]
+//     ]
+function trimShapeIndent(shape: string): string {
+  // Remove initial newline
+  if (shape.startsWith("\n")) {
+    shape = shape.substr(1);
+  }
+
+  // Count the number of spaces on the first line
+  let numSpaces = 0;
+  while(numSpaces < shape.length && shape[numSpaces] === " ") { 
+    numSpaces++; 
+  }
+  if (numSpaces == 0) { return shape.trim(); }
+
+  //console.log("numSpaces", numSpaces)
+
+  // Remove the spaces
+  const lines = shape.split("\n");
+  const re = new RegExp("^" + " ".repeat(numSpaces))
+  const newShape = lines.map((line) => line.replace(re, "")).join("\n");
+
+  return newShape.trim();
+}
+
 function jtest(testName: string, opt: RJSON.IOptions, value: any, shape?: string): void
 function jtest(testName: string, opt: RJSON.IOptions, shape: string): void
 function jtest(testName: string, opt: RJSON.IOptions, valueOrShape: any, shape?: string): void {
@@ -118,7 +144,7 @@ function jtest(testName: string, opt: RJSON.IOptions, valueOrShape: any, shape?:
       value = valueOrShape;
     }
     // For convenience
-    shape = shape.trim();
+    shape = trimShapeIndent(shape);
 
     const readableJson: string = RJSON.stringify(value, opt);
 

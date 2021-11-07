@@ -154,7 +154,14 @@ namespace RJSON
     var sfier = new Stringifier(fillOptions());
     return sfier.canInlineByLeafDepth(data, maxDepth);
   };
-  
+  export function stringifyAndLog(value: any, 
+    replacerOrOptions?: ReplacerT | IOptions, 
+    spaceOrOptions?: IOptions | number): void 
+  {
+    const str = stringify(value, <any>replacerOrOptions, <any>spaceOrOptions);
+    console.log(str);
+  }
+
   interface KVItem {
     key: any;
     keyJson: string;
