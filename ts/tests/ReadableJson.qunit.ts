@@ -62,8 +62,8 @@ QUnit.module('inlining', () => {
         "Schwab:PnwEl3b9+rGt0FTm5OozTg",
         "Schwab:5Qb5YCsHKcZPRMgfnCkP0w"
       ],
-      "key"       : 2,
-      "another"   : 3
+      "key"        : 2,
+      "another"    : 3
     }`);
 
   jtest('align bug in arr', OPT, `
@@ -71,7 +71,7 @@ QUnit.module('inlining', () => {
       [
         "Schwab:PnwEl3b9+rGt0FTm5OozTg",
         "Schwab:5Qb5YCsHKcZPRMgfnCkP0w"
-      ],
+      ]
     ]
   `);
 
