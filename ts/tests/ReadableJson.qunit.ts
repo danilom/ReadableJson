@@ -1,19 +1,19 @@
 ////<reference path="../src/ReadableJson.ts" />
 ////import * as RJSON from './../src/ReadableJson'
 
-const opt: RJSON.IOptions = { maxInlineLen: 40 };
+const OPT: RJSON.IOptions = { maxInlineLen: 40 };
 
 // https://stackoverflow.com/a/43652073/838
 QUnit.module('basics', () => {
-  jtest('null', opt, null)
+  jtest('null', OPT, null)
   //test('string', 'he said "hello"') // test fn uses string as a shape
-  jtest('number', opt, 5)
-  jtest('object-empty', opt, {})
-  jtest('array-empty', opt, [])
-  jtest('undefined as value', opt, {a:undefined, b:2}, `{"b":2}`)
-  jtest('undefined key', opt, {undefined: 1}, `{"undefined":1}`)
-  jtest('null key', opt, {null: 1}, `{"null":1}`)
-  jtest('numeric key', opt, {123: 1}, `{"123":1}`)
+  jtest('number', OPT, 5)
+  jtest('object-empty', OPT, {})
+  jtest('array-empty', OPT, [])
+  jtest('undefined as value', OPT, {a:undefined, b:2}, `{"b":2}`)
+  jtest('undefined key', OPT, {undefined: 1}, `{"undefined":1}`)
+  jtest('null key', OPT, {null: 1}, `{"null":1}`)
+  jtest('numeric key', OPT, {123: 1}, `{"123":1}`)
 
   // edge case, round-tripping doesn't work
   QUnit.test('undefined is null in array', (assert) => {
@@ -22,7 +22,7 @@ QUnit.module('basics', () => {
   });
   
   // Multiple levels
-  jtest('arr complex', opt, `
+  jtest('arr complex', OPT, `
     [
       [
         ["test", "mike", 4, ["jake"]],
@@ -31,16 +31,16 @@ QUnit.module('basics', () => {
       ]
     ]`);
   
-  jtest('arr levels', opt, [0, [1, [2, [3]]]]);
-  jtest('arr/obj levels', opt, [0, {a: 0, b: [1, {a: 1, b:[2, null]}]}]);
+  jtest('arr levels', OPT, [0, [1, [2, [3]]]]);
+  jtest('arr/obj levels', OPT, [0, {a: 0, b: [1, {a: 1, b:[2, null]}]}]);
 });
 
 QUnit.module('inlining', () => {
-  jtest('arr inline', opt, `[1, 2, true, false]`)
-  jtest('obj inline', opt,   `{"a":1, "b":2}`)
-  jtest('obj in array', opt, `[{"a":1}, {"b":2}, {"c":3}]`)
-  jtest('obj with arr inline', opt, `{"a":[1, 2, 3], "b":[4, 5, 6]}`)
-  jtest('obj too long to inline', opt, `
+  jtest('arr inline', OPT, `[1, 2, true, false]`)
+  jtest('obj inline', OPT,   `{"a":1, "b":2}`)
+  jtest('obj in array', OPT, `[{"a":1}, {"b":2}, {"c":3}]`)
+  jtest('obj with arr inline', OPT, `{"a":[1, 2, 3], "b":[4, 5, 6]}`)
+  jtest('obj too long to inline', OPT, `
     {
       "a": [1, 2, 3],
       "b": [4, 5, 6],
@@ -56,10 +56,29 @@ QUnit.module('inlining', () => {
       ]
     }`)
 
+  jtest('align bug in obj', OPT, `
+    {
+      "longKeyName": [
+        "Schwab:PnwEl3b9+rGt0FTm5OozTg",
+        "Schwab:5Qb5YCsHKcZPRMgfnCkP0w"
+      ],
+      "key"       : 2,
+      "another"   : 3
+    }`);
+
+  jtest('align bug in arr', OPT, `
+    [
+      [
+        "Schwab:PnwEl3b9+rGt0FTm5OozTg",
+        "Schwab:5Qb5YCsHKcZPRMgfnCkP0w"
+      ],
+    ]
+  `);
+
 });
 
 QUnit.module("aligment", () => {
-  jtest('keys', opt, `
+  jtest('keys', OPT, `
     {
       "123": [1, 2, 3],
       "a"  : 1,
@@ -73,7 +92,10 @@ QUnit.module('perf', () => {
   const arr: any[] = [];
   const n = 100000;
   for(let i=0; i < n; i++) {
-    arr.push({ a: 1, b: [1,2,3] });
+    arr.push({ 
+      a: "a".repeat(i % 5), 
+      bb: [10 - (i * 3) % 10, i % 1000] 
+    });
   }
   QUnit.test(`JSON`, (assert) => { 
     assert.expect(0); 

@@ -341,8 +341,11 @@ namespace RJSON
         sortedKVs: <KVItem[]>[]
       };
     
+      const sortedKeys = Object.keys(data);
       // TODO: have customizable sorting based on options
-      const sortedKeys = Object.keys(data).sort();
+      // JS objects have a stable order of keys (according to complex rules)
+      // so sorting should be seen as optional.
+      // sortedKeys.sort();
     
       for(const key of sortedKeys) {
         const v = data[key];
