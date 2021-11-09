@@ -5,8 +5,8 @@
     "outDir": "./tsjs/",
     "strict": true, /* Enable all strict type-checking options. */
 
-    "lib": ["ES6", "DOM"],
-    "target": "ES6",
+    "lib": ["ES2016"], // no DOM
+    "target": "ES2016",
     "typeRoots": [
       "node_modules/@types"
     ],
