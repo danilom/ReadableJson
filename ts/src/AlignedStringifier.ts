@@ -1,15 +1,28 @@
 namespace RJSON {
-    export interface IAligner {
+
+    enum DataType {
+        Array,
+        Object,
+    }
+
+    export class AlignedStringifier {
+
+        constructor(private opt: IFullOptions, private _inline: InlineStringifier) {
+
+        }
+
+        tryStringify(data: any, inlinePrefixLen: number): string | null {
+            const aligner = getAligner(data);
+            if (aligner == null) { return null; }
+
+            return null;
+        }
+
+
 
     }
-    // 4 cases (we don't know children before inspecting):
-    // - parent is full object, children are objects
-    // - parent is full object, children are arrays
-    // - parent is array, children are objects
-    // - parent is array, children are arrays
 
-    // Null if not possible to get
-    export function getAligner(parent: any): IAligner | null {
+    function getAligner(parent: any): IAligner | null {
         const children = getChildren(parent);
 
         // Check if all children are objects
@@ -29,11 +42,6 @@ namespace RJSON {
         return null;
     }
 
-
-    enum DataType {
-        Array,
-        Object,
-    }
     function areAllDataTypes(values: any[], type: DataType): boolean {
         for(const v in values) {
             if (Array.isArray(v)) {
@@ -48,7 +56,8 @@ namespace RJSON {
         }
         return true;
     }
-    export function getChildren(fullObjOrArray: any): any[] {
+
+    function getChildren(fullObjOrArray: any): any[] {
         if (Array.isArray(fullObjOrArray)) {
             return <[]>fullObjOrArray;
         }
@@ -57,6 +66,17 @@ namespace RJSON {
         }
         throw new Error("Type has no children:" + fullObjOrArray);
     }
+
+    interface IAligner {
+
+    }
+    // 4 cases (we don't know children before inspecting):
+    // - parent is full object, children are objects
+    // - parent is full object, children are arrays
+    // - parent is array, children are objects
+    // - parent is array, children are arrays
+
+    // Null if not possible to get
 
     class AlignerOfArrays implements IAligner {
         constructor(arrays: [][]) {
@@ -74,6 +94,10 @@ namespace RJSON {
         constructor(private objects: {}[]) {
             this.extractCommonKeys();
         }
+
+        // tryAlign(data: any, inlinePrefixLen: number): String | null {
+
+        // }
 
         private extractCommonKeys() {
             // assert(_commonKeys === null);

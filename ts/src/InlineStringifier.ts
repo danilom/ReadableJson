@@ -3,14 +3,13 @@ namespace RJSON {
         constructor(private opt: IFullOptions) {
         }
 
-        tryStringify(data: any, inlinePrefixLen: number): string | null {
+        tryStringify(obj: JsonObj, inlinePrefixLen: number): boolean {
             // Try to stringify inline
-            let inlineJson: string | null = null;
-            if (!this.isLeafDepthLEQ(data, this.opt.maxInlineDepth)) {
-                return null;
+            if (!this.isLeafDepthLEQ(obj.v, this.opt.maxInlineDepth)) {
+                return false;
             }
             const maxInlineLen = this.opt.maxInlineLen - inlinePrefixLen;
-            return this.tryStringifyInline(data, maxInlineLen);
+            return this.tryStringifyInline(obj, maxInlineLen);
         }
 
         /**
@@ -41,64 +40,79 @@ namespace RJSON {
             return true;
         }
 
-        private tryStringifyInline(data: any, maxInlineLen: number): string | null {
-            if (data === null || typeof (data) !== "object") {
+        private tryStringifyInline(obj: JsonObj, maxInlineLen: number): boolean {
+            if (obj.v === null || typeof(obj.v) !== "object") {
                 // Primitive, always inline
-                return JSON.stringify(data);
+                obj.vJson = JSON.stringify(obj.v); 
+                return true;
             }
-            if (Array.isArray(data)) {
+
+            if (Array.isArray(obj.v)) {
                 // Array, similar to objects
-                return this.tryStringifyInlineArray(data, maxInlineLen);
+                return this.tryStringifyInlineArray(obj, maxInlineLen);
             }
 
             // Object
             // {"a":1, "b":2}
+            fillSortedKeysAndItems(obj, this.opt);
+
             let str = '{';
-            let first = true;
-            for (const key of Object.keys(data)) {
-                const v = data[key];
-                // Special case, skip inline
-                if (v === undefined) { continue; }
-
+            for(var i=0; i < (<JsonObj[]>obj.items).length; i++) 
+            {
                 // Add comma
-                if (first) { first = false; }
-                else { str += this.opt.inlineObject_spaceAfterComma ? ", " : ","; }
+                if (i !== 0) { str += this.opt.inlineObject_spaceAfterComma ? ", " : ","; }
 
-                if (str.length > maxInlineLen) { return null; }
+                if (str.length > maxInlineLen) {
+                    return false; 
+                }
 
-                const keyJson = JSON.stringify("" + key); // keys are always strings
+                const keyJson = (<string[]>obj.keyJsons)[i];
+
                 str += keyJson + ":"; // TODO: support adding extra space (configurable)
+                if (str.length > maxInlineLen) { return false; }
 
-                if (str.length > maxInlineLen) { return null; }
-
-                const vJson = this.tryStringifyInline(v, maxInlineLen - str.length);
-                if (vJson === null) { return null; }
-                str += vJson;
+                const item = (<JsonObj[]>obj.items)[i];
+                if (this.tryStringifyInline(item, maxInlineLen - str.length)) { 
+                    str += item.vJson;
+                }
+                else { 
+                    return false; 
+                }
             }
             str += "}";
-            if (str.length > maxInlineLen) { return null; }
-            return str;
+            if (str.length > maxInlineLen) { return false; }
+
+            obj.vJson = str;
+            return true;
         }
-        private tryStringifyInlineArray(data: any, maxInlineLen: number): string | null {
+        private tryStringifyInlineArray(obj: JsonObj, maxInlineLen: number): boolean {
+            fillArrayItems(obj);
+
             // [1, 2, 3]
             let str = '[';
-            let first = true;
-            for (const v of data) {
-                if (first) { first = false; }
-                else { str += this.opt.inlineArray_spaceAfterComma ? ", " : ","; }
+            for(var i=0; i < (<JsonObj[]>obj.items).length; i++) 
+            {
+                if (i !== 0) { str += this.opt.inlineArray_spaceAfterComma ? ", " : ","; }
+                if (str.length > maxInlineLen) { return false; }
 
-                if (str.length > maxInlineLen) { return null; }
-
-                if (v === undefined) { str += 'null'; }
+                const item = (<JsonObj[]>obj.items)[i];
+                if (item.v === undefined) { // special case
+                    str += 'null';
+                }
                 else {
-                    const vJson = this.tryStringifyInline(v, maxInlineLen - str.length);
-                    if (vJson === null) { return null; }
-                    str += vJson;
+                    if (this.tryStringifyInline(item, maxInlineLen - str.length)) {
+                        str += item.vJson;
+                    }
+                    else {
+                        return false;
+                    }
                 }
             }
             str += "]";
-            if (str.length > maxInlineLen) { return null; }
-            return str;
+            if (str.length > maxInlineLen) { return false; }
+
+            obj.vJson = str;
+            return true;
         }
     }
 }

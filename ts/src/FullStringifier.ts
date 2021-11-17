@@ -3,115 +3,137 @@ namespace RJSON {
 
     export class FullStringifier {
         private _inline: InlineStringifier;
+        //private _aligned: AlignedStringifier;
 
         constructor(private opt: IFullOptions) {
             this._inline = new InlineStringifier(opt);
         }
 
-        stringify(data: any, inlinePrefixLen: number, fullIndentLen: number, aligner?: IAligner): string {
-            if (data === null || typeof (data) !== "object") {
+        stringify(obj: JsonObj, inlinePrefixLen: number, fullIndentLen: number): void {
+            if (obj.vJson !== undefined) {
+                return;
+            }
+            
+            if (obj.v === null || typeof (obj.v) !== "object") {
                 // Primitive
-                return JSON.stringify(data);
+                obj.vJson = JSON.stringify(obj.v);
+                return;
             }
 
             // Object or array
-
-            var inlineJson = this._inline.tryStringify(data, inlinePrefixLen);
-            if (inlineJson != null) {
-                return inlineJson;
+            if (this._inline.tryStringify(obj, inlinePrefixLen)) {
+                return;
             }
 
             // Couldn't inline, use the full-length method
-            return this.stringifyFull(data, fullIndentLen)
+            return this.stringifyFull(obj, fullIndentLen)
         }
 
-        private stringifyFull(data: any, indentLen: number): string {
-            if (data === null || typeof (data) !== "object") {
+        private stringifyFull(obj: JsonObj, indentLen: number): void {
+            if (obj.v === null || typeof (obj.v) !== "object") {
                 // Primitive, always inline
-                return JSON.stringify(data);
+                obj.vJson = JSON.stringify(obj.v);
+                return;
             }
-            if (Array.isArray(data)) {
+            if (Array.isArray(obj.v)) {
                 // Array, similar to objects
-                return this.stringifyFullArray(data, indentLen);
+                this.stringifyFullArray(obj, indentLen);
+                return;
             }
 
             // Object: {"a": 1, b: "2"}
+            fillSortedKeysAndItems(obj, this.opt);
 
             // Key alignment
             const keyIndentLen = indentLen + this.opt.spaceLen;
             const keyIndent = " ".repeat(keyIndentLen);
-            const kvInfo = this.getSortedKVs(data);
 
             let str = "{";
-            let first = true;
-            for (var kvi of kvInfo.sortedKVs) {
-                if (first) { first = false; }
-                else { str += ","; } // followed by \n, no extra space needed
+            for(var i=0; i < (<JsonObj[]>obj.items).length; i++) 
+            {
+                if (i != 0) { str += ","; } // followed by \n, no extra space needed
 
                 str += NEWLINE + keyIndent;
 
                 // Insert spaces for key alignment
-                let keyJson = kvi.keyJson;
-                if (keyJson.length < kvInfo.keyAlignLen) {
-                    keyJson += " ".repeat(kvInfo.keyAlignLen - keyJson.length);
+                let keyJson = (<string[]>obj.keyJsons)[i];
+                if (keyJson.length < <number>(obj.keyAlignLen)) {
+                    keyJson += " ".repeat(<number>(obj.keyAlignLen) - keyJson.length);
                 }
                 str += keyJson + ': '; // extra space for readability
-                str += this.stringify(kvi.v,
+
+                const item = (<JsonObj[]>obj.items)[i]; 
+                this.stringify(item,
                     (keyIndentLen + keyJson.length + 2),
-                    keyIndentLen,
-                    data);
+                    keyIndentLen);
+                str += item.vJson;
             }
             str += NEWLINE + " ".repeat(indentLen) + "}";
 
-            return str;
+            obj.vJson = str;
         }
-        private stringifyFullArray(data: any, indentLen: number): string {
+        private stringifyFullArray(obj: JsonObj, indentLen: number): void {
+            fillArrayItems(obj);
+
             const vIndentLen = indentLen + this.opt.spaceLen;
             const vIndent = " ".repeat(vIndentLen);
 
             let str = "[";
-            let first = true;
-            for (var v of data) {
-                if (first) { first = false; }
-                else { str += ","; } // followed by \n, no extra space needed
+            for(var i=0; i < (<JsonObj[]>obj.items).length; i++) {
+                if (i !== 0) { str += ","; } // followed by \n, no extra space needed
 
                 str += NEWLINE + vIndent;
-                str += this.stringify(v, vIndentLen, vIndentLen);
+                const item = (<JsonObj[]>obj.items)[i]; 
+                this.stringify(item, vIndentLen, vIndentLen);
+                str += item.vJson;
             }
             str += NEWLINE + " ".repeat(indentLen) + "]";
 
-            return str;
+            obj.vJson = str;
         }
-
-        private getSortedKVs(data: any) {
-            const rv = {
-                // Common width to align keys.
-                // Maximum of key JSON representations, excluding those over opt.maxKeyAlignLen
-                keyAlignLen: 0,
-                sortedKVs: <KVItem[]>[]
-            };
-
-            const sortedKeys = Object.keys(data);
-            // TODO: have customizable sorting based on options
-            // JS objects have a stable order of keys (according to complex rules)
-            // so sorting should be seen as optional.
-            // sortedKeys.sort();
-
-            for (const key of sortedKeys) {
-                const v = data[key];
-                if (v === undefined) { continue; } // skip undefined items
-
-                var keyJson = JSON.stringify("" + key); // keys are always strings
-                var kvItem: KVItem = { key: key, keyJson: keyJson, v: v };
-                if (keyJson.length <= this.opt.maxKeyAlignLen
-                    && keyJson.length > rv.keyAlignLen) {
-                    rv.keyAlignLen = keyJson.length;
-                }
-                rv.sortedKVs.push(kvItem);
-            }
-
-            return rv;
-        }
-
     }
+
+    export function fillArrayItems(obj: JsonObj): void {
+        // Skip if already filled
+        if (obj.items !== undefined) { return; }
+
+        // Fill array values
+        obj.items = [];
+        for (const cv of obj.v) {
+            obj.items.push(new JsonObj(cv));
+        }
+    }
+
+    export function fillSortedKeysAndItems(obj: JsonObj, opt: IFullOptions): void {
+        // Skip if already filled
+        if (obj.items !== undefined) { return; }
+
+        // Fill sorted keys
+        const sortedKeys = Object.keys(obj.v);
+        
+        // TODO: have customizable sorting based on options
+        // JS objects have a stable order of keys (according to complex rules)
+        // so sorting should be seen as optional.
+        // sortedKeys.sort();
+
+        obj.keyJsons = [];
+        obj.keyAlignLen = 0;
+        obj.items = [];
+
+        for (const key of sortedKeys) {
+            const v = obj.v[key];
+            if (v === undefined) { continue; } // skip undefined items
+
+            var keyJson = JSON.stringify("" + key); // keys are always strings
+            var vObj = new JsonObj(v);
+            if (keyJson.length <= opt.maxKeyAlignLen
+                && keyJson.length > obj.keyAlignLen) 
+            {
+                obj.keyAlignLen = keyJson.length;
+            }
+            obj.keyJsons.push(keyJson);
+            obj.items.push(vObj);
+        }
+    }
+
 }

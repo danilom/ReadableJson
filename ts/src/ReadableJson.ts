@@ -127,7 +127,8 @@ namespace RJSON {
     // Full version
     export function stringify(value: any,
         replacerOrOptions?: ReplacerT | IOptions,
-        spaceOrOptions?: IOptions | number): string {
+        spaceOrOptions?: IOptions | number): string 
+    {
         let replacer = null;
         if (isReplacerType(replacerOrOptions)) {
             replacer = <any>replacerOrOptions;
@@ -146,7 +147,9 @@ namespace RJSON {
         // TODO: replacer support
         //return stringifyV1(value, 0, opt);
         var sfier = new FullStringifier(opt);
-        return sfier.stringify(value, 0, 0);
+        var root = new JsonObj(value);
+        sfier.stringify(root, 0, 0);
+        return <string>root.vJson;
     }
 
     // test
@@ -162,11 +165,19 @@ namespace RJSON {
         console.log(str);
     }
 
-    export interface KVItem {
-        key: any;
-        keyJson: string;
+    export class JsonObj {
         v: any;
-        //vJson?: string;
+        vJson?: string | null; // might not be set
+
+        keyJsons?: string[]; // optional, for dict only
+        keyAlignLen?: number; // optional
+
+        items?: JsonObj[];
+
+        constructor(v: any) {
+            this.v = v;
+        }
+
     }
 }
 
